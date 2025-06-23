@@ -26,15 +26,24 @@ wifi:
 
 captive_portal:
 
-external_components:
-  - source: ../components
-  # - source: github://alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
-  #   components: [ vent_axia_sentinel_kinetic ]
-  #   refresh: always
-
 logger:
   level: DEBUG
   baud_rate: 0
+
+
+
+
+
+
+web_server:
+  version: 3
+  sorting_groups:
+    - id: sorting_group_control
+      name: "Control Panel"
+      sorting_weight: 10
+    # - id: sorting_group_number_settings
+    #   name: "Number settings"
+    #   sorting_weight: 20
 
 uart:
   tx_pin: GPIO1
@@ -42,223 +51,324 @@ uart:
   baud_rate: 9600
   id: vask_uart
 
-i2c:
-  sda: 4
-  scl: 5
-  scan: false
-  
-display:
-  - platform: lcd_pcf8574
-    id: lcd
-    dimensions: 16x2
-    address: 0x27
-    update_interval: 300ms
-    lambda: |-
-        it.printf(0, 0, "%s", id(line1).state.c_str());
-        it.printf(0, 1, "%s", id(line2).state.c_str());
+external_components:
+  - source: ../components
+  # - source: github://alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
+  #   components: [ vent_axia_sentinel_kinetic ]
+  #   refresh: always
 
-binary_sensor:
-  - platform: gpio
-    pin:
-      number: 0
-      mode:
-        input: true
-        pullup: true
-      inverted: true
-    id: upsw
-    entity_category: "diagnostic"
-    on_press:
-      then:
-        - switch.turn_on: sw_up
-    on_release:
-      then:
-        - switch.turn_off: sw_up
-  - platform: gpio
-    pin:
-      number: 12
-      mode:
-        input: true
-        pullup: true
-      inverted: true
-    id: downsw
-    entity_category: "diagnostic"
-    filters:
-      - delayed_on: 10ms
-      - delayed_off: 10ms
-    on_press:
-      - switch.turn_on: sw_down
-    on_release:
-      - switch.turn_off: sw_down
-  - platform: gpio
-    pin:
-      number: 14
-      mode:
-        input: true
-        pullup: true
-      inverted: true
-    id: setsw
-    entity_category: "diagnostic"
-    filters:
-      - delayed_on: 10ms
-      - delayed_off: 10ms
-    on_press:
-      - switch.turn_on: sw_set
-    on_release:
-      - switch.turn_off: sw_set
-  - platform: gpio
-    pin:
-      number: 13
-      mode:
-        input: true
-        pullup: true
-      inverted: true
-    id: mainsw
-    entity_category: "diagnostic"
-    filters:
-      - delayed_on: 10ms
-      - delayed_off: 10ms
-    on_press:
-      - switch.turn_on: sw_main
-    on_release:
-      - switch.turn_off: sw_main
+vent_axia_sentinel_kinetic:
+  - id: vask
+    uart_id: vask_uart
+    line1:
+      id: line_1
+      name: "Line 1"
+      web_server:
+        sorting_group_id: sorting_group_control
+        sorting_weight: 10
+      icon: "mdi:text-short"
+    line2:
+      id: line_2
+      name: "Line 2"
+      web_server:
+        sorting_group_id: sorting_group_control
+        sorting_weight: 20
+      icon: "mdi:text-short"
+      on_value:
+        then:
+          - lambda: |-
+              if (id(line_1).state.compare(0, 10, "Diagnostic") == 0) {
+                  switch (std::stoi(id(line_1).state.substr(12, 2))) {
+                      case 0:
+                          id(fan_speed).publish_state(std::stoi(x.substr(0, 3)));
+                          id(internal_pwm).publish_state(std::stoi(x.substr(4, 3)));
+                          id(internal_rpm).publish_state(std::stoi(x.substr(10, 4)));
+                          break;
+                      case 1:
+                          id(fan_speed).publish_state(std::stoi(x.substr(0, 3)));
+                          id(external_pwm).publish_state(std::stoi(x.substr(4, 3)));
+                          id(external_rpm).publish_state(std::stoi(x.substr(10, 4)));
+                          break;
+                      case 2:
+                          id(internal_temp_sensor).publish_state(std::stoi(x.substr(1, 2)));
+                          break;
+                      case 3:
+                          id(external_temp_sensor).publish_state(std::stoi(x.substr(1, 2)));
+                          //ESP_LOGD("main", "The current version is %d", std::stoi(x.substr(1, 2)) );
+                          break;
+                      case 4:
+                          id(internal_humidity_sensor).publish_state(std::stoi(x.substr(0, 2)));
+                          id(internal_temp_sensor2).publish_state(std::stoi(x.substr(5, 2)));
+                          id(internal_humidity_sensor_5min).publish_state(std::stoi(x.substr(10, 2)));
+                          break;
+                      case 5:
+                          break;
+                      case 6:
+                          break;
+                      case 7:
+                          break;
+                      case 8:
+                          break;
+                      case 9:
+                          break;
+                      case 10:
+                          break;
+                      case 11:
+                          break;
+                      case 12:
+                          break;
+                      case 13:
+                          break;
+                      case 14:
+                          break;
+                      case 15:
+                          break;
+                      case 16:
+                          break;
+                      case 17:
+                          break;
+                      case 18:
+                          break;
+                      case 19:
+                          id(rail_24v).publish_state(std::stoi(x.substr(0, 1)));
+                          break;
+                      case 20:
+                          break;
+                      case 21:
+                          break;
+                      case 22:
+                          break;
+                      case 23:
+                          id(filter_hours_remain).publish_state(std::stoi(x.substr(0, 5)));
+                          //ESP_LOGD("main", "The current version is %d", std::stoi(x.substr(0, 5)) );
+                          break;
+                      case 24:
+                          break;
+                      case 25:
+                          break;
+                      case 26:
+                          break;
+                      case 27:
+                          break;
+                      case 28:
+                          break;
+                      default:
+                          // Handle other cases
+                          break;
+                  }
+              }
+
+# number:
+#   - platform: template
+#     name: "Diagnostic Scroll Delay"
+#     id: scroll_delay
+#     icon: "mdi:timer-cog-outline"
+#     entity_category: config
+#     initial_value: 25
+#     min_value: 0
+#     max_value: 1000
+#     step: 1
+#     optimistic: true
+#     restore_value: true
 
 switch:
   - platform: vent_axia_sentinel_kinetic
     up:
-      name: "Up Switch"
-      id: sw_up
+      id: up_sw
+      name: "Up"
+      entity_category: config
+      icon: "mdi:menu-up"
+      web_server:
+        sorting_group_id: sorting_group_control
+        sorting_weight: 70
     down:
-      name: "Down Switch"
-      id: sw_down
+      id: down_sw
+      name: "Down"
+      entity_category: config
+      icon: "mdi:menu-down"
+      web_server:
+        sorting_group_id: sorting_group_control
+        sorting_weight: 80
     set:
-      name: "Set Switch"
-      id: sw_set
+      id: set_sw
+      name: "Set"
+      entity_category: config
+      icon: "mdi:menu-right"
+      web_server:
+        sorting_group_id: sorting_group_control
+        sorting_weight: 90
     main:
-      name: "Main Switch"
-      id: sw_main
+      id: main_sw
+      name: "Main"
+      entity_category: config
+      icon: "mdi:fan"
+      web_server:
+        sorting_group_id: sorting_group_control
+        sorting_weight: 100
+  - platform: output
+    id: diagnostic_sw
+    name: "Diagnostic"
+    output: generic_out
+    icon: "mdi:stethoscope"
 
 button:
   - platform: template
     name: "Up"
     on_press:
-      - switch.turn_on: sw_up
+      - switch.turn_on: up_sw
       - delay: 50ms
-      - switch.turn_off: sw_up
+      - switch.turn_off: up_sw
+    web_server:
+      sorting_group_id: sorting_group_control
+      sorting_weight: 30
+    icon: "mdi:menu-up-outline"
   - platform: template
     name: "Down"
     on_press:
-      - switch.turn_on: sw_down
+      - switch.turn_on: down_sw
       - delay: 50ms
-      - switch.turn_off: sw_down
+      - switch.turn_off: down_sw
+    web_server:
+      sorting_group_id: sorting_group_control
+      sorting_weight: 40
+    icon: "mdi:menu-down-outline"
   - platform: template
     name: "Set"
     on_press:
-      - switch.turn_on: sw_set
+      - switch.turn_on: set_sw
       - delay: 50ms
-      - switch.turn_off: sw_set
+      - switch.turn_off: set_sw
+    web_server:
+      sorting_group_id: sorting_group_control
+      sorting_weight: 50
+    icon: "mdi:menu-right-outline"
   - platform: template
     name: "Main"
     on_press:
-      - switch.turn_on: sw_main
+      - switch.turn_on: main_sw
       - delay: 50ms
-      - switch.turn_off: sw_main
+      - switch.turn_off: main_sw
+    web_server:
+      sorting_group_id: sorting_group_control
+      sorting_weight: 60
+    icon: "mdi:fan"
 
-vent_axia_sentinel_kinetic:
-  - id: vask
-    uart_id: vask_uart
-    diagnostic_button:
-      id: diagnostic_button
-      name: "Fetch Diagnostic"
-    line1:
-      id: line1
-      name: "Line 1"
-    line2:
-      id: line2
-      name: "Line 2"
-    diagnostic0:
-      name: "Diagnostic 00"
-      entity_category: "diagnostic"
-    diagnostic1:
-      name: "Diagnostic 01"
-      entity_category: "diagnostic"
-    diagnostic2:
-      name: "Diagnostic 02"
-      entity_category: "diagnostic"
-    diagnostic3:
-      name: "Diagnostic 03"
-      entity_category: "diagnostic"
-    diagnostic4:
-      name: "Diagnostic 04"
-      entity_category: "diagnostic"
-    diagnostic5:
-      name: "Diagnostic 05"
-      entity_category: "diagnostic"
-    diagnostic6:
-      name: "Diagnostic 06"
-      entity_category: "diagnostic"
-    diagnostic7:
-      name: "Diagnostic 07"
-      entity_category: "diagnostic"
-    diagnostic8:
-      name: "Diagnostic 08"
-      entity_category: "diagnostic"
-    diagnostic9:
-      name: "Diagnostic 09"
-      entity_category: "diagnostic"
-    diagnostic10:
-      name: "Diagnostic 10"
-      entity_category: "diagnostic"
-    diagnostic11:
-      name: "Diagnostic 11"
-      entity_category: "diagnostic"
-    diagnostic12:
-      name: "Diagnostic 12"
-      entity_category: "diagnostic"
-    diagnostic13:
-      name: "Diagnostic 13"
-      entity_category: "diagnostic"
-    diagnostic14:
-      name: "Diagnostic 14"
-      entity_category: "diagnostic"
-    diagnostic15:
-      name: "Diagnostic 15"
-      entity_category: "diagnostic"
-    diagnostic16:
-      name: "Diagnostic 16"
-      entity_category: "diagnostic"
-    diagnostic17:
-      name: "Diagnostic 17"
-      entity_category: "diagnostic"
-    diagnostic18:
-      name: "Diagnostic 18"
-      entity_category: "diagnostic"
-    diagnostic19:
-      name: "Diagnostic 19"
-      entity_category: "diagnostic"
-    diagnostic20:
-      name: "Diagnostic 20"
-      entity_category: "diagnostic"
-    diagnostic21:
-      name: "Diagnostic 21"
-      entity_category: "diagnostic"
-    diagnostic22:
-      name: "Diagnostic 22"
-      entity_category: "diagnostic"
-    diagnostic23:
-      name: "Diagnostic 23"
-      entity_category: "diagnostic"
-    diagnostic24:
-      name: "Diagnostic 24"
-      entity_category: "diagnostic"
-    diagnostic25:
-      name: "Diagnostic 25"
-      entity_category: "diagnostic"
-    diagnostic26:
-      name: "Diagnostic 26"
-      entity_category: "diagnostic"
-    diagnostic27:
-      name: "Diagnostic 27"
-      entity_category: "diagnostic"
-    diagnostic28:
-      name: "Diagnostic 28"
-      entity_category: "diagnostic"
+fan:
+  - platform: speed
+    name: "Fan Speed"
+    output: pwm_output
+    # on_state:
+      # - do something
+    # on_speed_set:
+      # - do something
+    icon: "mdi:fan"
+
+output:
+  - platform: esp8266_pwm
+    pin: GPIO4
+    frequency: 1000 Hz
+    id: pwm_output
+  - platform: gpio
+    pin: GPIO2
+    id: generic_out
+
+sensor:
+  - platform: template
+    id: fan_speed
+    name: "Fan Speed"
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    state_class: measurement
+    update_interval: never
+  - platform: template
+    id: internal_temp_sensor
+    name: "Internal Temperature"
+    accuracy_decimals: 0
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:home-thermometer-outline"
+  - platform: template
+    id: internal_temp_sensor2
+    name: "Internal Temperature 2"
+    accuracy_decimals: 0
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:home-thermometer-outline"
+  - platform: template
+    id: external_temp_sensor
+    name: "External Temperature"
+    accuracy_decimals: 0
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:sun-thermometer-outline"
+  - platform: template
+    id: internal_humidity_sensor
+    name: "Internal Humidity"
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:water-percent"
+  - platform: template
+    id: internal_humidity_sensor_5min
+    name: "Internal Humidity 5Min"
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:water-percent"
+  - platform: template
+    id: internal_rpm
+    name: "Internal Speed"
+    accuracy_decimals: 0
+    unit_of_measurement: "RPM"
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:fan-speed-1"
+  - platform: template
+    id: external_rpm
+    name: "External Speed"
+    accuracy_decimals: 0
+    unit_of_measurement: "RPM"
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:fan-speed-2"
+  - platform: template
+    id: internal_pwm
+    name: "Internal PWM"
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:fan-speed-1"
+  - platform: template
+    id: external_pwm
+    name: "External PWM"
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:fan-speed-2"
+  - platform: template
+    id: filter_hours_remain
+    name: "Remaining Filter Hours"
+    accuracy_decimals: 0
+    unit_of_measurement: "h"
+    device_class: duration
+    state_class: measurement
+    update_interval: never
+    icon: "mdi:clock-outline"
+
+binary_sensor:
+  - platform: template
+    id: rail_24v
+    name: "24V Rail"
+    icon: "mdi:flash-triangle-outline"
