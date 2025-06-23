@@ -101,7 +101,7 @@ vent_axia_sentinel_kinetic:
                           id(internal_temp_sensor2).publish_state(std::stoi(x.substr(5, 2)));
                           id(internal_humidity_sensor_5min).publish_state(std::stoi(x.substr(10, 2)));
                           break;
-                      case 5:
+                      /*case 5:
                           break;
                       case 6:
                           break;
@@ -128,21 +128,21 @@ vent_axia_sentinel_kinetic:
                       case 17:
                           break;
                       case 18:
-                          break;
+                          break;*/
                       case 19:
                           id(rail_24v).publish_state(std::stoi(x.substr(0, 1)));
                           break;
-                      case 20:
+                      /*case 20:
                           break;
                       case 21:
                           break;
                       case 22:
-                          break;
+                          break;*/
                       case 23:
                           id(filter_hours_remain).publish_state(std::stoi(x.substr(0, 5)));
                           //ESP_LOGD("main", "The current version is %d", std::stoi(x.substr(0, 5)) );
                           break;
-                      case 24:
+                      /*case 24:
                           break;
                       case 25:
                           break;
@@ -151,7 +151,7 @@ vent_axia_sentinel_kinetic:
                       case 27:
                           break;
                       case 28:
-                          break;
+                          break;*/
                       default:
                           // Handle other cases
                           break;
@@ -170,6 +170,49 @@ vent_axia_sentinel_kinetic:
 #     step: 1
 #     optimistic: true
 #     restore_value: true
+
+script:
+  - id: check_line_1
+    mode: restart
+    then:
+      - switch.turn_on: up_sw
+      - switch.turn_on: main_sw
+      - while:
+          condition:
+            lambda: |-
+              return id(line_1).state.compare(0, 10, "Diagnostic") != 0;
+          then:
+            # Actions to perform while the condition is true
+            - logger.log: "line_1 is not 'Diagnostic'"
+            - delay: 500ms
+      - switch.turn_off: up_sw
+      - switch.turn_off: main_sw
+      - logger.log: "line_1 is now 'Diagnostic'"
+      - while:
+          condition:
+            lambda: |-
+              return true;
+          then:
+            - switch.turn_on: down_sw
+            - while:
+                condition:
+                  lambda: |-
+                    return id(line_1).state.compare(0, 14, "Diagnostic  28") != 0;
+                then:
+                  # Actions to perform while the condition is true
+                  - logger.log: "line_1 is not 'Diagnostic 28'"
+                  - delay: 500ms
+            - switch.turn_off: down_sw
+            - switch.turn_on: up_sw
+            - while:
+                condition:
+                  lambda: |-
+                    return id(line_1).state.compare(0, 14, "Diagnostic  00") != 0;
+                then:
+                  # Actions to perform while the condition is true
+                  - logger.log: "line_1 is not 'Diagnostic 00'"
+                  - delay: 500ms
+            - switch.turn_off: up_sw
 
 switch:
   - platform: vent_axia_sentinel_kinetic
@@ -207,9 +250,15 @@ switch:
         sorting_weight: 100
   - platform: output
     id: diagnostic_sw
-    name: "Diagnostic"
+    name: "Diagnostic - WIP"
     output: generic_out
     icon: "mdi:stethoscope"
+    on_turn_on:
+      - logger.log: "Switch Turned On!"
+      - script.execute: check_line_1
+    on_turn_off:
+      - logger.log: "Switch Turned Off!"
+      - script.stop: check_line_1
 
 button:
   - platform: template
@@ -255,7 +304,7 @@ button:
 
 fan:
   - platform: speed
-    name: "Fan Speed"
+    name: "Fan Speed - WIP"
     output: pwm_output
     # on_state:
       # - do something
