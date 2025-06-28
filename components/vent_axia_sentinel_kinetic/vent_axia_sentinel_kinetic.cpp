@@ -1,5 +1,6 @@
 #include "esphome/core/log.h"
 #include "vent_axia_sentinel_kinetic.h"
+#include <cctype>
 
 #define highbyte(val)(uint8_t)((val) >> 8)
 #define lowbyte(val)(uint8_t)((val) & 0xff)
@@ -167,6 +168,20 @@ namespace esphome {
       if (std::memcmp(this->buffer_, this->last_buffer_, sizeof(this->buffer_)) != 0){ //Only process the string if its changed
         std::string buff(reinterpret_cast < const char * > (this->buffer_ + 5), 34);
         
+        // Replace non-printable characters with '*'
+        for (char& c : buff) {
+            if (!isprint(static_cast<unsigned char>(c))) {
+                c = '*';
+            }
+        }
+
+        // std::replace_if(
+        //     buff.begin(),
+        //     buff.end(),
+        //     [](unsigned char c) { return !std::isprint(c); },
+        //     '*'
+        // );
+
         std::string new_line1_state = buff.substr(1, 16);
         if (new_line1_state != this->prev_line1_state_) {
             this->line1_->publish_state(new_line1_state.c_str());

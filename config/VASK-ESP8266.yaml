@@ -62,14 +62,14 @@ vent_axia_sentinel_kinetic:
     uart_id: vask_uart
     line1:
       id: line_1
-      name: "Line 1"
+      # name: "Line 1"
       web_server:
         sorting_group_id: sorting_group_control
         sorting_weight: 10
       icon: "mdi:text-short"
     line2:
       id: line_2
-      name: "Line 2"
+      # name: "Line 2"
       web_server:
         sorting_group_id: sorting_group_control
         sorting_weight: 20
@@ -101,118 +101,73 @@ vent_axia_sentinel_kinetic:
                           id(internal_temp_sensor2).publish_state(std::stoi(x.substr(5, 2)));
                           id(internal_humidity_sensor_5min).publish_state(std::stoi(x.substr(10, 2)));
                           break;
-                      /*case 5:
-                          break;
-                      case 6:
-                          break;
-                      case 7:
-                          break;
-                      case 8:
-                          break;
-                      case 9:
-                          break;
-                      case 10:
-                          break;
-                      case 11:
-                          break;
-                      case 12:
-                          break;
-                      case 13:
-                          break;
-                      case 14:
-                          break;
-                      case 15:
-                          break;
-                      case 16:
-                          break;
-                      case 17:
-                          break;
-                      case 18:
-                          break;*/
                       case 19:
                           id(rail_24v).publish_state(std::stoi(x.substr(0, 1)));
                           break;
-                      /*case 20:
-                          break;
-                      case 21:
-                          break;
-                      case 22:
-                          break;*/
                       case 23:
                           id(filter_hours_remain).publish_state(std::stoi(x.substr(0, 5)));
                           //ESP_LOGD("main", "The current version is %d", std::stoi(x.substr(0, 5)) );
                           break;
-                      /*case 24:
-                          break;
-                      case 25:
-                          break;
-                      case 26:
-                          break;
-                      case 27:
-                          break;
-                      case 28:
-                          break;*/
                       default:
                           // Handle other cases
                           break;
                   }
               }
 
-# number:
-#   - platform: template
-#     name: "Diagnostic Scroll Delay"
-#     id: scroll_delay
-#     icon: "mdi:timer-cog-outline"
-#     entity_category: config
-#     initial_value: 25
-#     min_value: 0
-#     max_value: 1000
-#     step: 1
-#     optimistic: true
-#     restore_value: true
-
 script:
-  - id: check_line_1
-    mode: restart
+  - id: enter_and_run_diagnostic
+    mode: single
     then:
-      - switch.turn_on: up_sw
-      - switch.turn_on: main_sw
-      - while:
+      - switch.turn_off: down_sw
+      - switch.turn_off: set_sw
+      - if:
           condition:
-            lambda: |-
-              return id(line_1).state.compare(0, 10, "Diagnostic") != 0;
+            lambda: 'return id(line_1).state.compare(0, 10, "Diagnostic") != 0;'
           then:
-            # Actions to perform while the condition is true
-            - logger.log: "line_1 is not 'Diagnostic'"
-            - delay: 500ms
-      - switch.turn_off: up_sw
-      - switch.turn_off: main_sw
-      - logger.log: "line_1 is now 'Diagnostic'"
+            - switch.turn_on: up_sw
+            - switch.turn_on: main_sw
+            - wait_until:
+                condition:
+                  lambda: 'return id(line_1).state.compare(0, 10, "Diagnostic") == 0;'
+                timeout: 8s
+            - switch.turn_off: up_sw
+            - switch.turn_off: main_sw
       - while:
           condition:
             lambda: |-
               return true;
           then:
             - switch.turn_on: down_sw
-            - while:
+            - wait_until:
                 condition:
-                  lambda: |-
-                    return id(line_1).state.compare(0, 14, "Diagnostic  28") != 0;
-                then:
-                  # Actions to perform while the condition is true
-                  - logger.log: "line_1 is not 'Diagnostic 28'"
-                  - delay: 500ms
+                  lambda: 'return std::stoi(id(line_1).state.substr(12, 2)) > 23;'
+                timeout: 8s
             - switch.turn_off: down_sw
             - switch.turn_on: up_sw
-            - while:
+            - wait_until:
                 condition:
-                  lambda: |-
-                    return id(line_1).state.compare(0, 14, "Diagnostic  00") != 0;
-                then:
-                  # Actions to perform while the condition is true
-                  - logger.log: "line_1 is not 'Diagnostic 00'"
-                  - delay: 500ms
+                  lambda: 'return std::stoi(id(line_1).state.substr(12, 2)) == 0;'
+                timeout: 8s
             - switch.turn_off: up_sw
+  - id: exit_diagnostic
+    mode: single
+    then:
+      - switch.turn_on: up_sw #Scroll up until we see Diagnostic 0
+      - switch.turn_off: down_sw
+      - switch.turn_off: set_sw
+      - switch.turn_off: main_sw
+      - wait_until:
+          condition:
+            lambda: 'return std::stoi(id(line_1).state.substr(12, 2)) == 0;'
+          timeout: 8s
+      - switch.turn_off: up_sw
+      - delay: 50ms
+      - switch.turn_on: up_sw
+      - wait_until:
+          condition:
+            lambda: 'return id(line_1).state.compare(0, 10, "Diagnostic") != 0;'
+          timeout: 8s
+      - switch.turn_off: up_sw
 
 switch:
   - platform: vent_axia_sentinel_kinetic
@@ -250,15 +205,18 @@ switch:
         sorting_weight: 100
   - platform: output
     id: diagnostic_sw
-    name: "Diagnostic - WIP"
+    name: "Diagnostic"
     output: generic_out
     icon: "mdi:stethoscope"
     on_turn_on:
-      - logger.log: "Switch Turned On!"
-      - script.execute: check_line_1
+      - script.execute: enter_and_run_diagnostic
     on_turn_off:
-      - logger.log: "Switch Turned Off!"
-      - script.stop: check_line_1
+      - if:
+          condition: #make sure script has been running, as this is triggered at boot and will cause lockup if run at boot
+            script.is_running: enter_and_run_diagnostic
+          then:
+            - script.stop: enter_and_run_diagnostic
+            - script.execute: exit_diagnostic
 
 button:
   - platform: template
