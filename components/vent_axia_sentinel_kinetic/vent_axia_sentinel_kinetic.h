@@ -80,6 +80,7 @@ namespace esphome {
 
         static VentAxiaSentinelKineticComponent* instance;
         void IRAM_ATTR timer_isr();
+        void uart_tx_task(void* arg);
         static void IRAM_ATTR timer_isr_wrapper();
 #ifdef USE_ESP32
         hw_timer_t *timer = nullptr;

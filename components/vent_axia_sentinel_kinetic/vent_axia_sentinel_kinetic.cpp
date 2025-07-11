@@ -2,6 +2,7 @@
 #include "vent_axia_sentinel_kinetic.h"
 #include <cctype>
 
+
 #define highbyte(val)(uint8_t)((val) >> 8)
 #define lowbyte(val)(uint8_t)((val) & 0xff)
 
@@ -9,6 +10,7 @@ namespace esphome {
   namespace vent_axia_sentinel_kinetic {
 
     static const char * TAG = "vent_axia_sentinel_kinetic.component";
+    static TaskHandle_t uart_tx_task_handle = nullptr;
 
     VentAxiaSentinelKineticComponent* VentAxiaSentinelKineticComponent::instance = nullptr;
 
@@ -19,8 +21,22 @@ namespace esphome {
     }
 
     void IRAM_ATTR VentAxiaSentinelKineticComponent::timer_isr() {
-      // Your ISR logic here
-        send_command_();
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+      if (uart_tx_task_handle != nullptr) {
+          vTaskNotifyGiveFromISR(uart_tx_task_handle, &xHigherPriorityTaskWoken);
+          if (xHigherPriorityTaskWoken) {
+              portYIELD_FROM_ISR();
+          }
+      }
+    }
+
+    void VentAxiaSentinelKineticComponent::uart_tx_task(void* arg) {
+        while (true) {
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait for ISR notification
+            if (VentAxiaSentinelKineticComponent::instance) {
+                VentAxiaSentinelKineticComponent::instance->send_command_();
+            }
+        }
     }
 
     void VentAxiaSentinelKineticComponent::setup() {
@@ -31,7 +47,17 @@ namespace esphome {
       timer = timerBegin(1, 80, true);
       timerAttachInterrupt(timer, &timer_isr_wrapper, true);
       timerAlarmWrite(timer, 26000, true);  // 1 second interval
-      // timerAlarmEnable(timer);
+      timerAlarmEnable(timer);
+
+      // Create the UART TX task
+      xTaskCreate(
+          [](void* arg) { instance->uart_tx_task(arg); },
+          "uart_tx_task",
+          2048,
+          nullptr,
+          10,
+          &uart_tx_task_handle
+      );
     #endif
     #ifdef USE_ESP8266
       // Timer configuration
@@ -43,6 +69,16 @@ namespace esphome {
       // 5,000,000 ticks @ 5MHz (TIM_DIV16) = 1 second interval
       // timer1_write(5*26000);
       timer1_write(5*28000);
+
+      // Create the UART TX task
+      xTaskCreate(
+          [](void* arg) { instance->uart_tx_task(arg); },
+          "uart_tx_task",
+          2048,
+          nullptr,
+          10,
+          &uart_tx_task_handle
+      );
     #endif
       this->send_alive_str_();
       ESP_LOGCONFIG(TAG, "VentAxiaSentinelKinetic setup complete.");
