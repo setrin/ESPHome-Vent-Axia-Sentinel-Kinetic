@@ -24,6 +24,6 @@ source scripts/setup_build_env.sh
 
 To Build ESP32 firmware on your local machine for running Wokwi:
 ```bash
-esphome compile config/VASK-ESP32.yaml
+esphome compile config/VASK-ESP32-Dongle-V1_0.yaml
 ```
 Once copiled run in Wokwi VSCode https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode

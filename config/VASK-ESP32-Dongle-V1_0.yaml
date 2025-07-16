@@ -166,21 +166,21 @@ script:
 switch:
   - platform: gpio
     pin: GPIO22
-    name: "Set Low - WIP"
+    name: "Set Low"
     icon: "mdi:speedometer-slow"
     web_server:
       sorting_group_id: sorting_group_control
       sorting_weight: 110
   - platform: gpio
     pin: GPIO25
-    name: "Set Normal - WIP"
+    name: "Set Normal"
     icon: "mdi:speedometer-medium"
     web_server:
       sorting_group_id: sorting_group_control
       sorting_weight: 120
   - platform: gpio
     pin: GPIO33
-    name: "Set Boost - WIP"
+    name: "Set Boost"
     icon: "mdi:speedometer"
     web_server:
       sorting_group_id: sorting_group_control
@@ -225,30 +225,6 @@ switch:
         sorting_weight: 100
 
 button:
-  # - platform: output
-  #   name: "Set Low - WIP"
-  #   output: out_1
-  #   duration: 500ms
-  #   icon: "mdi:speedometer-slow"
-  #   web_server:
-  #     sorting_group_id: sorting_group_control
-  #     sorting_weight: 110
-  # - platform: output
-  #   name: "Set Normal - WIP"
-  #   output: out_2
-  #   duration: 500ms
-  #   icon: "mdi:speedometer-medium"
-  #   web_server:
-  #     sorting_group_id: sorting_group_control
-  #     sorting_weight: 120
-  # - platform: output
-  #   name: "Set Boost - WIP"
-  #   output: out_3
-  #   duration: 500ms
-  #   icon: "mdi:speedometer"
-  #   web_server:
-  #     sorting_group_id: sorting_group_control
-  #     sorting_weight: 130
   - platform: template
     # name: "Up"
     id: btn_up
@@ -315,7 +291,7 @@ button:
 
 fan:
   - platform: speed
-    name: "Fan - WIP"
+    name: "Fan"
     output: pwm_output
     restore_mode: RESTORE_DEFAULT_ON
     on_turn_on: 
@@ -330,23 +306,10 @@ fan:
       sorting_weight: 5
 
 output:
-  # - platform: esp8266_pwm
-  #   pin: GPIO4
-  #   frequency: 1000 Hz
-  #   id: pwm_output
   - platform: ledc
     pin: GPIO32
     frequency: 500 Hz
     id: pwm_output
-  # - platform: gpio
-  #   pin: GPIO22
-  #   id: out_2
-  # - platform: gpio
-  #   pin: GPIO33
-  #   id: out_3
-  # - platform: gpio
-  #   pin: GPIO25
-  #   id: out_4
 
 sensor:
   - platform: template
