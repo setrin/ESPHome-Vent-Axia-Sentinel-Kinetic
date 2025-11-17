@@ -1,37 +1,28 @@
-[![latest version](https://img.shields.io/github/release/alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic?display_name=tag&include_prereleases&label=latest%20version)](https://github.com/alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/releases)
+[![latest version](https://img.shields.io/github/release/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic?display_name=tag&include_prereleases&label=latest%20version)](https://github.com/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/releases)
 
 <a href="https://esphome.io/">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://esphome.io/_static/logo-text-on-dark.svg", alt="ESPHome Logo">
-    <img src="https://esphome.io/_static/logo-text-on-light.svg" alt="ESPHome Logo">
+    <source media="(prefers-color-scheme: dark)" srcset="https://esphome.io/images/logo-text-on-dark.svg", alt="ESPHome Logo">
+    <img src="https://esphome.io/images/logo-text-on-dark.svg" alt="ESPHome Logo">
   </picture>
 </a>
 
 ## 💬 Feedback & Support
 
-🐞 Found a bug? Let us know via an [Issue](https://github.com/alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/issues).
-💡 Have a question or suggestion? Join the [Discussion](https://github.com/alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/discussions)!
+🐞 Found a bug? Let us know via an [Issue](https://github.com/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/issues).
+💡 Have a question or suggestion? Join the [Discussion](https://github.com/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/discussions)!
 
 # Vent Axia Sentinel Kinetic ESPHome
 
-> [!WARNING]
-> Due to a change in ESPHome 2025.2.0, some users are reporting build problems related to the loading of the `uptime_seconds_sensor` class. If you get a compile error for this reason, manually add an uptime sensor to your YAML configuration as below, clean your build files, and recompile. Once the root cause is identified this note will be removed.
->
-> ```yaml
-> sensor:
->   - platform: uptime
->     name: Uptime
-> ```
+This project is a firmware for ESP32 microcontrollers supporting UART communication via the BMS connector. Its purpose is to enable complete control of a compatible Vent Axia Sentinel Kinetic MVHR through Home Assistant, a web interface, or any MQTT client.
 
-This project is a firmware for ESP32 (and possibly ESP8266) microcontrollers supporting UART communication via the BMS connector. Its purpose is to enable complete control of a compatible Vent Axia Sentinel Kinetic MVHR through Home Assistant, a web interface, or any MQTT client.
-
-It uses the ESPHome framework and is compatible with the Arduino framework and ESP-IDF.
+It uses the ESPHome framework and is compatible with the ESP-IDF framework.
 
 The benefits include fully local control over your MVHR, without reliance on a vendor network. Additional visibility, finer control, and even improved energy efficiency and comfort are possible when utilizing Home Assistant automations.
 
 > [!CAUTION]
 > Use at your own risk.
-> This is an unofficial implementation of the reverse-engineered Vent Axia protocol based on the information from the [Vent Axia Remote](https://github.com/aelias-eu/vent-axia-remotehttps:/) repo. The authors and contributors have extensively tested this firmware across several similar implementations and forks. However, it's important to note that not all units support every feature. While free to use, it is at your own risk.
+> This is an unofficial implementation of the reverse-engineered Vent Axia protocol based on the information from the [Vent Axia Remote](https://github.com/aelias-eu/vent-axia-remote) repo. The authors and contributors have extensively tested this firmware across several similar implementations and forks. However, it's important to note that not all units support every feature. While free to use, it is at your own risk.
 
 ### Features
 
@@ -48,13 +39,13 @@ The benefits include fully local control over your MVHR, without reliance on a v
 ## Supported Microcontrollers
 
 > [!IMPORTANT]
-> ESP8266 boards may work, but support is no longer actively maintained by this component, if you are purchasing new hardware for use with this project, it is recommended to focus on the more modern and powerful ESP32 based devices.
+> ESP8266 boards will not work, if you are purchasing new hardware for use with this project, it is recommended to focus on the more modern and powerful ESP32 based devices.
 
-- [ESP32 Sentinel Kinetic Wireless Dongle](https://github.com/alextrical/ESP32-Sentinel-Kinetic-Wireless-Dongle)
+- [ESPRekup V2](https://github.com/setrin/ESPRekupV2)
 
 ## Supported Vent Axia Sentinel Kinetic MVHR Units
 
-Generally, any MVHR that can use the [Sentinel Kinetic Wired Remote Controller](https://www.vent-axia.com/range/sentinel-kinetic-wired-remote-controllerhttps:/) will be compatible.
+Generally, any MVHR that can use the [Sentinel Kinetic Wired Remote Controller](https://www.vent-axia.com/range/sentinel-kinetic-wired-remote-controller) will be compatible.
 
 Units tested by project contributors include:
 
@@ -103,7 +94,7 @@ Add these sections to load the external component, setup logging, and enable the
 ```yaml
 # External component reference
 external_components:
-  - source: github://alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
+  - source: github://setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
 
 # External component configuration
 vent_axia_sentinel_kinetic:
@@ -115,20 +106,6 @@ logger:
   level: INFO
 ```
 
-<!-- #### Adjusting the `update_interval`
-
-An ESPHome firmware implements the esphome::Component interface to be integrated into the Inversion Of Control mechanism of the ESPHome framework.
-The main method of this process is the `loop()` method. MitsubishiCN105ESPHome performs a series of exchanges with the heat pump through a cycle. This cycle is timed, and its duration is displayed in the logs, provided the `CYCLE` logger is set to at least `INFO`.
-
-If this is the case, you will see logs in the form:
-
-```
-[09:48:36][I][CYCLE:052]: 6: Cycle ended in 1.2 seconds (with timeout?: NO)
-```
-
-This will give you a good idea of your microcontroller's performance in completing an entire cycle. It is unnecessary to set the `update_interval` below this value.
-In this example, setting an `update_interval` to 1500ms could be a fine tuned value.
--->
 ### Step 5: Optional components and variables
 
 These optional additional configurations add customization and additional capabilities. The examples below assume you have added a substitutions component to your configuration file to allow for easy renaming, and that you have added a `secrets.yaml` file to your ESPHome configuration to hide private variables like your random API keys, OTA passwords, and Wifi passwords.
@@ -232,10 +209,7 @@ sensor:
     update_interval: 120s
 
 external_components:
-  # - source: ../components
-  - source: github://alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
-    # components: [ vent_axia_sentinel_kinetic ]
-    # refresh: always
+  - source: github://setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
 
 status_led:
   pin: GPIO02

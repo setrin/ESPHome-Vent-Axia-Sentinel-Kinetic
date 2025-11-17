@@ -1,4 +1,5 @@
 #include "esphome/core/log.h"
+#include "esp_timer.h"
 #include "vent_axia_sentinel_kinetic.h"
 #include <cctype>
 
@@ -14,72 +15,27 @@ namespace esphome {
 
     VentAxiaSentinelKineticComponent* VentAxiaSentinelKineticComponent::instance = nullptr;
 
-    void IRAM_ATTR VentAxiaSentinelKineticComponent::timer_isr_wrapper() {
+    void VentAxiaSentinelKineticComponent::periodic_timer_cb(void* arg) {
       if (VentAxiaSentinelKineticComponent::instance) {
-        VentAxiaSentinelKineticComponent::instance->timer_isr();
+        VentAxiaSentinelKineticComponent::instance->send_command_();
       }
-    }
-
-    void IRAM_ATTR VentAxiaSentinelKineticComponent::timer_isr() {
-      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-      if (uart_tx_task_handle != nullptr) {
-          vTaskNotifyGiveFromISR(uart_tx_task_handle, &xHigherPriorityTaskWoken);
-          if (xHigherPriorityTaskWoken) {
-              portYIELD_FROM_ISR();
-          }
-      }
-    }
-
-    void VentAxiaSentinelKineticComponent::uart_tx_task(void* arg) {
-        while (true) {
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait for ISR notification
-            if (VentAxiaSentinelKineticComponent::instance) {
-                VentAxiaSentinelKineticComponent::instance->send_command_();
-            }
-        }
     }
 
     void VentAxiaSentinelKineticComponent::setup() {
-      //ESP32
-      instance = this;
-    #ifdef USE_ESP32
-      // Fix timer divider (80 MHz base clock / 80 = 1 MHz)
-      timer = timerBegin(1, 80, true);
-      timerAttachInterrupt(timer, &timer_isr_wrapper, true);
-      timerAlarmWrite(timer, 26000, true);  // 1 second interval
-      timerAlarmEnable(timer);
+      instance = this;      
+      ESP_LOGCONFIG(TAG, "esp_timer init");
 
-      // Create the UART TX task
-      xTaskCreate(
-          [](void* arg) { instance->uart_tx_task(arg); },
-          "uart_tx_task",
-          2048,
-          nullptr,
-          10,
-          &uart_tx_task_handle
-      );
-    #endif
-    #ifdef USE_ESP8266
-      // Timer configuration
-      timer1_disable();
-      timer1_attachInterrupt(timer_isr_wrapper);
-      timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);
-      timer1_disable();
-      
-      // 5,000,000 ticks @ 5MHz (TIM_DIV16) = 1 second interval
-      // timer1_write(5*26000);
-      timer1_write(5*28000);
+      // create esp_timer args
+      esp_timer_create_args_t periodic_timer_args = {};
+      periodic_timer_args.callback = &VentAxiaSentinelKineticComponent::periodic_timer_cb;
+      periodic_timer_args.arg = this;
+      periodic_timer_args.name = "vak_periodic";
 
-      // Create the UART TX task
-      xTaskCreate(
-          [](void* arg) { instance->uart_tx_task(arg); },
-          "uart_tx_task",
-          2048,
-          nullptr,
-          10,
-          &uart_tx_task_handle
-      );
-    #endif
+      esp_err_t err = esp_timer_create(&periodic_timer_args, &this->periodic_timer_);
+      if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_timer_create failed: %d", err);
+      }
+
       this->send_alive_str_();
       ESP_LOGCONFIG(TAG, "VentAxiaSentinelKinetic setup complete.");
     }
@@ -91,25 +47,23 @@ namespace esphome {
           this->calculate_command_(CMD_KEY_HEADER, CMD_KEY_DATA);
           LAST_CMD_KEY_DATA_ = CMD_KEY_DATA;
         }
-      #ifdef USE_ESP32
-        timerAlarmEnable(timer);
-      #endif
-      #ifdef USE_ESP8266
-        timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);
-      #endif
-        // // //Send serial packets
-        // if (now - last_periodic_millis_ >= 20) { //we need every 26ms, but setting less can allow for more jitter
-        //   last_periodic_millis_ = now;
-        //   send_command_();
-        // }
+
+        if (!esp_timer_is_active(this->periodic_timer_)) {
+          // start periodic timer with 26000 us (26 ms)
+          esp_err_t start_err = esp_timer_start_periodic(this->periodic_timer_, 26000);
+          if (start_err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_timer_start_periodic failed: %d", start_err);
+          }
+        }
+
       } else {
         if (CMD_KEY_DATA != LAST_CMD_KEY_DATA_) {
-        #ifdef USE_ESP32
-          timerAlarmDisable(timer);
-        #endif
-        #ifdef USE_ESP8266
-          timer1_disable();
-        #endif
+          if (esp_timer_is_active(this->periodic_timer_)) {
+            esp_err_t stop_err = esp_timer_stop(this->periodic_timer_);
+            if (stop_err != ESP_OK) {
+              ESP_LOGE(TAG, "esp_timer_stop failed: %d", stop_err);
+            }
+          }
         }
       }
 

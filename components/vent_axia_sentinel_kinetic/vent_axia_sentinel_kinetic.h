@@ -1,5 +1,6 @@
 #pragma once
 
+#include "esp_timer.h"
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -79,12 +80,8 @@ namespace esphome {
         std::string prev_line2_state_;
 
         static VentAxiaSentinelKineticComponent* instance;
-        void IRAM_ATTR timer_isr();
-        void uart_tx_task(void* arg);
-        static void IRAM_ATTR timer_isr_wrapper();
-#ifdef USE_ESP32
-        hw_timer_t *timer = nullptr;
-#endif
+        static void periodic_timer_cb(void* arg);
+        esp_timer_handle_t periodic_timer_ = nullptr;
     };
 
   } // namespace vent_axia_sentinel_kinetic
