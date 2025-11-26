@@ -1,135 +1,3 @@
-[![latest version](https://img.shields.io/github/release/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic?display_name=tag&include_prereleases&label=latest%20version)](https://github.com/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/releases)
-
-<a href="https://esphome.io/">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://esphome.io/images/logo-text-on-dark.svg", alt="ESPHome Logo">
-    <img src="https://esphome.io/images/logo-text-on-dark.svg" alt="ESPHome Logo">
-  </picture>
-</a>
-
-## 💬 Feedback & Support
-
-🐞 Found a bug? Let us know via an [Issue](https://github.com/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/issues).
-💡 Have a question or suggestion? Join the [Discussion](https://github.com/setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/discussions)!
-
-# Vent Axia Sentinel Kinetic ESPHome
-
-This project is a firmware for ESP32 microcontrollers supporting UART communication via the BMS connector. Its purpose is to enable complete control of a compatible Vent Axia Sentinel Kinetic MVHR through Home Assistant, a web interface, or any MQTT client.
-
-It uses the ESPHome framework and is compatible with the ESP-IDF framework.
-
-The benefits include fully local control over your MVHR, without reliance on a vendor network. Additional visibility, finer control, and even improved energy efficiency and comfort are possible when utilizing Home Assistant automations.
-
-> [!CAUTION]
-> Use at your own risk.
-> This is an unofficial implementation of the reverse-engineered Vent Axia protocol based on the information from the [Vent Axia Remote](https://github.com/aelias-eu/vent-axia-remote) repo. The authors and contributors have extensively tested this firmware across several similar implementations and forks. However, it's important to note that not all units support every feature. While free to use, it is at your own risk.
-
-### Features
-
-- Wireless Vent Avia Sentinel Kinetic MVHR equipment control via ESP32, using the [ESPHome](https://esphome.io) framework.
-- Byte-by-byte reading within the loop() function ensures no data loss or lag, as the component continuously reads without blocking ESPHome.
-- UART writes are followed by non-blocking reads. The responses are accumulated byte-by-byte in the loop() method and processed when complete, allowing command stacking without delays for a more responsive UI.
-- Diagnostic sensors exposed from the MVHR ro reading temperature, motor speed, humidity, remaining filter life.
-- Ongoing refactoring to further improve the code quality.
-
-## Requirements
-
-- [ESPHome](https://esphome.io/) - Minimum version 1.18.0, installed independently or as an add-on in HomeAssistant
-
-## Supported Microcontrollers
-
-> [!IMPORTANT]
-> ESP8266 boards will not work, if you are purchasing new hardware for use with this project, it is recommended to focus on the more modern and powerful ESP32 based devices.
-
-- [ESPRekup V2](https://github.com/setrin/ESPRekupV2)
-
-## Supported Vent Axia Sentinel Kinetic MVHR Units
-
-Generally, any MVHR that can use the [Sentinel Kinetic Wired Remote Controller](https://www.vent-axia.com/range/sentinel-kinetic-wired-remote-controller) will be compatible.
-
-Units tested by project contributors include:
-
-- `Vent Axia Sentinel Kinetic BH Unit (RH) - 443319`
-- `Vent Axia Sentinel Kinetic BH Unit (LH) - 443319L`
-- `Vent Axia Sentinel Kinetic Plus B Heat Recovery (RH) Unit - 443028`
-- `Vent Axia Sentinel Kinetic Plus B Heat Recovery (LH) Unit - 443028L`
-
-## Usage
-
-### Step 1: Building the Control Circuit
-
-Follow the [ESP32-Sentinel-Kinetic-Wireless-Dongle](https://github.com/alextrical/ESP32-Sentinel-Kinetic-Wireless-Dongle) for building a control circuit using the ESP32.
-
-### Step 2: Using ESPHome
-
-Add a new device in your ESPHome dashboard. Create a yaml configuration file for the new device using the templates below, and flash to your device. Refer to the ESPHome documentation for guides on how to install ESPHome, add new devices, and flash the initial firmware.
-
-- [Getting Started with ESPHome and HomeAssistant](https://esphome.io/guides/getting_started_hassio)
-- [Installing ESPHome Locally](https://esphome.io/guides/installing_esphome)
-
-> [!NOTE]
-> This code uses the ESPHome [external components](https://esphome.io/components/external_components.html) integration feature. This means the project is not part of the ESPHome framework, it is an external component not managed by the core ESPHome project.
-
-### Step 3: Configure the board and UART settings
-
-Your ESPHome device configuration file starts with common defaults for ESPHome. To these defaults, add these minimum sections:
-
-```yaml
-esp32:
-  board: esp32dev
-  framework:
-    type: esp-idf
-
-uart:
-  tx_pin: 17
-  rx_pin: 16
-  baud_rate: 9600
-  id: vask_uart
-```
-
-### Step 4: Configure the external component
-
-Add these sections to load the external component, setup logging, and enable the climate entity.
-
-```yaml
-# External component reference
-external_components:
-  - source: github://setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
-
-# External component configuration
-vent_axia_sentinel_kinetic:
-  - id: vask
-    uart_id: vask_uart
-
-# Default logging level
-logger:
-  level: INFO
-```
-
-### Step 5: Optional components and variables
-
-These optional additional configurations add customization and additional capabilities. The examples below assume you have added a substitutions component to your configuration file to allow for easy renaming, and that you have added a `secrets.yaml` file to your ESPHome configuration to hide private variables like your random API keys, OTA passwords, and Wifi passwords.
-
-```yaml
-substitutions:
-  name: mvhr-1 # Do not use underscores, which are not fully compatible with mDNS
-  friendly_name: My MVHR 1
-``` 
-
-
-### Step 6: Build the project and install
-
-Build the project in ESPHome and install to your device. Install the device in your MVHR unit connected to the BMS port, and confirm that it powers up and connects to the Wifi. Visit the local IP address of the device, and confirm that you can change modes and temperature setpoints. HomeAssistant should now include your MVHR.
-
-## Example Configuration - Complete
-
-This example includes all the bells and whistles, optional components, remote temperature sensing, reboot button, and additional sensors in HomeAssistant including uptime, the current wifi SSID, and signal strength. Utilizes a `secrets.yaml` file to store your credentials.
-
-<details>
-
-<summary>Complete Configuration</summary>
-
-```yaml
 substitutions:
   name: mvhr-1
   friendly_name: My MVHR 1
@@ -166,6 +34,7 @@ wifi:
 captive_portal:
 
 logger:
+  # hardware_uart: UART1 # Uncomment on ESP8266 devices
   level: INFO
 
 web_server:
@@ -197,19 +66,11 @@ text_sensor:
     bssid:
       name: BSSID
 
-# Sensors with general information.
-sensor:
-  # Uptime sensor.
-  - platform: uptime
-    name: Uptime
-
-  # WiFi Signal sensor.
-  - platform: wifi_signal
-    name: WiFi Signal
-    update_interval: 120s
-
 external_components:
-  - source: github://setrin/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
+  # - source: ../components
+  - source: github://alextrical/ESPHome-Vent-Axia-Sentinel-Kinetic/@latest
+  #   components: [ vent_axia_sentinel_kinetic ]
+  #   refresh: always
 
 status_led:
   pin: GPIO02
@@ -478,6 +339,14 @@ output:
     id: pwm_output
 
 sensor:
+  # Sensors with general information.
+  # Uptime sensor.
+  - platform: uptime
+    name: Uptime
+  # WiFi Signal sensor.
+  - platform: wifi_signal
+    name: WiFi Signal
+    update_interval: 120s
   - platform: template
     id: external_fan_speed
     name: "External Fan Speed"
@@ -584,29 +453,3 @@ binary_sensor:
     id: rail_24v
     name: "24V Rail"
     icon: "mdi:flash-triangle-outline"
-````
-
-</details>
-
-## Developing, Testing & Debugging
-
-For Mac and Linux users its possible to compile ESPHome project on your workstation, simply by running the comands below in a terminal
-
-Create/activate environment by running from project root:
-```
-source scripts/setup_build_env.sh
-```
-
-To Build ESP32 firmware on your local machine:
-```
-esphome compile config/VASK-ESP32-Dongle-V1_0.yaml
-```
-
-## Reference Documentation
-
-Refer to these for further understanding:
-
-- [ESPHome Custom Sensors](https://esphome.io/components/sensor/custom.html)
-- [ESPHome External Components](https://esphome.io/components/external_components.html)
-
----
